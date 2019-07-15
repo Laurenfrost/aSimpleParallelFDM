@@ -21,48 +21,48 @@
 #include "mpi.h"
 using namespace std;
 
-int nStep = 5000;							            //迭代总次数
-int nstep = 0;								            //经历的迭代次数
+int nStep = 5000;				//迭代总次数
+int nstep = 0;					//经历的迭代次数
 
-const int nDom_X = 200;						        //真实计算域大小
+const int nDom_X = 200;				//真实计算域大小
 const int nDom_Y = 200;
 
-const int holo_x = 1;						          //真实计算域外光环，辅助边界计算
+const int holo_x = 1;				//真实计算域外光环，辅助边界计算
 const int holo_y = 1;
 
 const int global_x = nDom_X + 2 * holo_x;	//加环计算域大小
 const int global_y = nDom_Y + 2 * holo_y;
 
-const int global_x_start = holo_x;			  //加环后真实计算域范围
+const int global_x_start = holo_x;		//加环后真实计算域范围
 const int global_x_end   = holo_x + nDom_X;
 const int global_y_start = holo_y;
 const int global_y_end   = holo_y + nDom_Y;
 
-const int local_x = nDom_X / 2;				    //划分给子进程的计算域大小
+const int local_x = nDom_X / 2;			//划分给子进程的计算域大小
 const int local_y = nDom_Y / 2;
 
-int local_x_start;							          //加环后子进程的计算域范围
+int local_x_start;				//加环后子进程的计算域范围
 int local_x_end;
 int local_y_start;
 int local_y_end;
 
-int size;//size == 4						          //mpi总进程数
-int rank;									                //本进程进程号
+int size;//size == 4				//mpi总进程数
+int rank;					//本进程进程号
 MPI_Status status;
 
 float buffer[2][global_x][global_y];		//buffer[0]即fConten_pre存储数据的二维数组，上一时刻
-											//buffer[1]即fConten_now存储数据的二维数组，当前时刻
+						//buffer[1]即fConten_now存储数据的二维数组，当前时刻
 float buf[local_x][local_y];
 
-const float fDelta_Xh = 6e-5f;				//空间步长
+const float fDelta_Xh = 6e-5f;			//空间步长
 const float fDelta_Yh = 6e-5f;	
 
-float fDelta_Time;							//时间步长
+float fDelta_Time;				//时间步长
 
-int Center_X;								//计算域中心点坐标
+int Center_X;					//计算域中心点坐标
 int Center_Y;
 
-float fDiff_Coeffient;						//扩散系数
+float fDiff_Coeffient;				//扩散系数
 
 
 void Intial_Cacul_Domain()
