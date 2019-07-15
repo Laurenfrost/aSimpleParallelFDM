@@ -10,6 +10,10 @@ Intel(R) MPI 2019 update 3
 ## Hardware Enviroment
 Intel(R) Xeon(R) CPU E5-2660 v3 @ 2.60GHz  
 
+## Build
+$mpiicpc -xHost [要编译的文件]  
+>a Makefile is on the TODO list.
+
 # What is FDM
 Acturally I'm not very clear about FDM, the shorter name of "Finite Differential Method".  
 As far as I know, the FDM bases on the following forma:  
