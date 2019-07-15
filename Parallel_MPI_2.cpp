@@ -9,7 +9,7 @@
 //区别与1的“十字形切蛋糕”，本程序横向划分数据，即每个进程分得相同行数的数据
 //横向划分也是考虑到C语言数组横向存储的特点，希望可以藉此提升访存效率
 //如下图，在mpi size == 4时在计算域中的数据划分情况
-//	0———————————————x
+//	0———————————————y
 //	|       0       |
 //	|———————————————|
 //	|       1       |
@@ -17,7 +17,7 @@
 //	|       2       |
 //	|———————————————|
 //	|       3       |
-//	y———————————————
+//	x———————————————
 /* ******************************************************* */
 #include "stdio.h"
 #include "iostream"
@@ -25,8 +25,8 @@
 #include "mpi.h"
 using namespace std;
 
-int nStep = 5000;							//迭代总次数
-int nstep = 0;								//经历的迭代次数
+const int nStep = 5000;						//迭代总次数
+const int nstep = 0;						//经历的迭代次数
 
 const int nDom_X = 200;						//真实计算域大小
 const int nDom_Y = 200;
@@ -44,8 +44,8 @@ const int global_y_end   = holo_y + nDom_Y - 1;
 
 const int lay = 1;							//分割后计算域条带之间重叠区域的厚度
 
-const int local_x = nDom_X;		 			//划分给子进程的计算域大小，因为是横向下刀“切蛋糕”，所以x不变，y均分
-const int local_y = nDom_Y / 4;
+const int local_x = nDom_X / 4;		 		//划分给子进程的计算域大小，因为是横向下刀“切蛋糕”，所以y不变，x均分
+const int local_y = nDom_Y;
 
 int local_x_start;							//加环后子进程的计算域范围
 int local_x_end;
@@ -58,7 +58,7 @@ MPI_Status status;
 
 float buffer[2][global_x][global_y];		//buffer[0]即fConten_pre存储数据的二维数组，上一时刻
 											//buffer[1]即fConten_now存储数据的二维数组，当前时刻
-float buf[local_x][local_y];
+float buf[2][local_x][local_y];				
 
 const float fDelta_Xh = 6e-5f;				//空间步长
 const float fDelta_Yh = 6e-5f;	
@@ -74,10 +74,10 @@ float fDiff_Coeffient;						//扩散系数
 void Intial_Cacul_Domain()
 {
 	//初始化加环后子进程的计算域范围
-	local_x_start = global_x_start;
-	local_x_end   = global_x_end;
-	local_y_start = rank * local_y + lay - 1;
-	local_y_end   = (rank + 1) * local_y + lay - 1;
+	local_y_start = global_y_start;
+	local_y_end   = global_y_end;
+	local_x_start = rank * local_x + lay - 1;
+	local_x_end   = (rank + 1) * local_x + lay - 1;
 
 	//将计算域所有节点值初始化，低的值
 	for(int k = 0; k < 2; k ++)
@@ -118,12 +118,33 @@ void Caculation()
 			buffer[pre][i][j] = buffer[now][i][j] + fDelta_Time * fDiff_Coeffient * (deltaX + deltaY);
 		}
 	}
-/*
+
 	//交换子进程计算域之间的数据
+	if(rank != 0)	//上
+	{
+		MPI_Send (&buffer[pre][local_x_start  ][local_y_start], local_y, MPI_FLOAT, rank-1, rank  , MPI_COMM_WORLD);
+		MPI_Recv (&buffer[pre][local_x_start-1][local_y_start], local_y, MPI_FLOAT, rank-1, rank-1, MPI_COMM_WORLD, &status);
+	}
+	if(rank != 3)	//下
+	{
+		MPI_Send (&buffer[pre][local_x_end  ][local_y_start], local_y, MPI_FLOAT, rank+1, rank  , MPI_COMM_WORLD);
+		MPI_Recv (&buffer[pre][local_x_end+1][local_y_start], local_y, MPI_FLOAT, rank+1, rank+1, MPI_COMM_WORLD, &status);
+	}
 
 	//更新辅助边界计算用的光环
+	for(int j = global_y_start; j <= global_y_end ; j++)
+	{
+		buffer[pre][0][j] = buffer[pre][global_x_start][j];
+		buffer[pre][global_x_end][j] = buffer[pre][global_x_end - 1][j];
+	}
 
-/* 
+	for(int i = global_x_start; i <= global_x_end ; i++)
+	{
+		buffer[pre][i][0] = buffer[pre][i][global_x_start];
+		buffer[pre][i][global_y_end] = buffer[pre][i][global_y_end - 1];
+	}
+
+/*
 //串行代码
 	for(int i = global_x_start; i <= global_x_end ; i++)
 	{
@@ -209,27 +230,18 @@ int main(void)
 			printf("The %dth iteration accomplished\n", nstep);
 	}
 	//整合计算结果到rank 0
-/* 
+
 	if (rank == 0)
 	{
-		local_x_start = (1 % 2) * local_x + holo_x;
-		local_x_end   = local_x_start + local_x;
-		local_y_start = (1 / 2) * local_y + holo_y;
-		local_y_end   = local_y_start + local_y;
-		MPI_Recv (&buf, local_x*local_y, MPI_FLOAT, 1, 1, MPI_COMM_WORLD, &status);
-		buffer[1][local_x+holo_x:2*local_x+holo_x-1][local_y+holo_y:2*local_y+holo_y-1] = buf[local_x+holo_x:2*local_x+holo_x-1][local_y+holo_y:2*local_y+holo_y-1];
-		MPI_Recv (&buf, local_x*local_y, MPI_FLOAT, 2, 2, MPI_COMM_WORLD, &status);
-		buffer[1][local_x+holo_x:2*local_x+holo_x-1][local_y+holo_y:2*local_y+holo_y-1] = buf[local_x+holo_x:2*local_x+holo_x-1][local_y+holo_y:2*local_y+holo_y-1];
-		MPI_Recv (&buf, local_x*local_y, MPI_FLOAT, 3, 3, MPI_COMM_WORLD, &status);
-		buffer[1][local_x+holo_x:2*local_x+holo_x-1][local_y+holo_y:2*local_y+holo_y-1] = buf[local_x+holo_x:2*local_x+holo_x-1][local_y+holo_y:2*local_y+holo_y-1];
+		for (int i = 1; i < 4; i ++)
+			MPI_Recv (&buffer[nStep%2 + 1][local_x_start][0], local_x * (local_y + holo_y * 2), MPI_FLOAT, i, i, MPI_COMM_WORLD, &status);
 	}
 	else
 	{
-		buf[local_x_start:local_x_end-1][local_y_start:local_y_end-1] = buffer[1][local_x_start:local_x_end-1][local_y_start:local_y_end-1];
-		MPI_Send (&buf, local_x*local_y, MPI_FLOAT, 0, rank, MPI_COMM_WORLD);
+		MPI_Send (&buffer[nStep%2 + 1][local_x_start][0], local_x * (local_y + holo_y * 2), MPI_FLOAT, 0, rank, MPI_COMM_WORLD);
 	}
-*/	
-	//raank 0输出计算结果
+
+	//rank 0输出计算结果
 	if (rank == 0)
 	{
 		Save_Caculation_Data();
@@ -239,4 +251,3 @@ int main(void)
 	MPI_Finalize();
 	return 0;
 }
-
