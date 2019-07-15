@@ -34,38 +34,38 @@ const int nDom_Y = 200;
 const int holo_x = 1;						//在真实计算域外添加的辅助计算环的厚度
 const int holo_y = 1;
 
-const int global_x = nDom_X + 2 * holo_x;	//加计算辅助环后整体计算域大小
+const int global_x = nDom_X + 2 * holo_x;			//加计算辅助环后整体计算域大小
 const int global_y = nDom_Y + 2 * holo_y;
 
-const int global_x_start = holo_x;			//加环后真实计算域范围，因为C语言的数组从0开始，故-1
+const int global_x_start = holo_x;				//加环后真实计算域范围，因为C语言的数组从0开始，故-1
 const int global_x_end   = holo_x + nDom_X - 1;
 const int global_y_start = holo_y;
 const int global_y_end   = holo_y + nDom_Y - 1;
 
-const int lay = 1;							//分割后计算域条带之间重叠区域的厚度
+const int lay = 1;						//分割后计算域条带之间重叠区域的厚度
 
-const int local_x = nDom_X / 4;		 		//划分给子进程的计算域大小，因为是横向下刀“切蛋糕”，所以y不变，x均分
+const int local_x = nDom_X / 4;		 			//划分给子进程的计算域大小，因为是横向下刀“切蛋糕”，所以y不变，x均分
 const int local_y = nDom_Y;
 
-int local_x_start;							//加环后子进程的计算域范围
+int local_x_start;						//加环后子进程的计算域范围
 int local_x_end;
 int local_y_start;
 int local_y_end;
 
 int size;//size == 4						//mpi总进程数
-int rank;									//本进程进程号
+int rank;							//本进程进程号
 MPI_Status status;
 
-float buffer[2][global_x][global_y];		//buffer[0]即fConten_pre存储数据的二维数组，上一时刻
-											//buffer[1]即fConten_now存储数据的二维数组，当前时刻
+float buffer[2][global_x][global_y];				//buffer[0]即fConten_pre存储数据的二维数组，上一时刻
+								//buffer[1]即fConten_now存储数据的二维数组，当前时刻
 float buf[2][local_x][local_y];				
 
-const float fDelta_Xh = 6e-5f;				//空间步长
+const float fDelta_Xh = 6e-5f;					//空间步长
 const float fDelta_Yh = 6e-5f;	
 
-float fDelta_Time;							//时间步长
+float fDelta_Time;						//时间步长
 
-int Center_X;								//计算域中心点坐标
+int Center_X;							//计算域中心点坐标
 int Center_Y;
 
 float fDiff_Coeffient;						//扩散系数
@@ -91,11 +91,11 @@ void Intial_Ncleus()
 {
 	Center_X = global_x / 2;
 	Center_Y = global_y / 2;
-	buffer[0][Center_X][Center_Y] = 20.f;	//计算域中心的节点设置高的温度值
+	buffer[0][Center_X][Center_Y] = 20.f;			//计算域中心的节点设置高的温度值
 }
 
 
-void Intial_Physical_Variation()			//设置一个扩散系数
+void Intial_Physical_Variation()				//设置一个扩散系数
 {
 	fDiff_Coeffient = 2e-009f;
 }
